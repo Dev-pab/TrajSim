@@ -29,7 +29,6 @@ void WorldManager::pause()
 
 void WorldManager::setInitialParameters(InitialParameters_t * i)
 {
-    qDebug() << "angle :" << i->angle;
     _rocket->setForce(ForceType::Gravity, i->gravity, -90);
     _rocket->setForce(ForceType::thrust, 0, i->angle);
     _rocket->setMass(i->mass);
@@ -76,6 +75,11 @@ void WorldManager::newMainStep(int ms)
 
     _positionModel.rocketVelocity = _rocket->velocity();
     _positionModel.rocketVelocityAngle = _rocket->velocityAngle();
+
+    _positionModel.energy = 0.5 * _rocket->mass() * _rocket->velocity() * _rocket->velocity();
+
+    _positionModel.openingShock = (1.3 * 0.66 * 2.2 * qPow(_rocket->velocity(), 2) ) / 2 / 10;
+    qDebug() << _positionModel.openingShock;
 
     _positionModel.rocketAccelerationSum = _rocket->acceleration();
     _positionModel.rocketAccelerationSumAngle = _rocket->accelerationAngle();

@@ -7,23 +7,34 @@
 #include <QTransform>
 
 int pointCpt = 0;
+double paraCpt = 0;
 
 double maxAlt = 0;
 bool maxAltDone = 0;
 double maxSpeed = 0;
 bool maxSpeedDone = 0;
 
+enum MouseLine
+{
+    HORIZONTAL,
+    VERTICAL,
+
+    LINE_NB
+};
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
     _ui(new Ui::MainWindow),
     _scene(new QGraphicsScene),
     _forceScene(new QGraphicsScene),
-    _graphicView(new GraphicViewSurcharged),
+    _graphicView(new GraphicViewSurcharged(this)),
     _worldManager(new WorldManager(parent))
 {
     _ui->setupUi(this);
 
-    _ui->widgetView = _graphicView;
+    _ui->widgetView->setLayout(new QVBoxLayout(this));
+    _ui->widgetView->layout()->addWidget(_graphicView);
+    _graphicView->setScene(_scene);
 
     QList<QWidget*> widgets = this->findChildren<QWidget*>();
 
@@ -44,15 +55,22 @@ MainWindow::MainWindow(QWidget *parent)
 
     }
 
-    _ui->graphicsView->setScene(_scene);
+    _graphicView->setScene(_scene);
     _ui->graphicsView_forceView->setScene(_forceScene);
 
-    _ui->graphicsView->setRenderHint(QPainter::Antialiasing);
+    _graphicView->setRenderHint(QPainter::Antialiasing);
     _ui->graphicsView_forceView->setRenderHint(QPainter::Antialiasing);
-    _ui->graphicsView->setStyleSheet("background: transparent; border: 0px");
+    _graphicView->setStyleSheet("background: transparent; border: 0px");
+    _graphicView->setCursor(QCursor(Qt::BlankCursor));
 
-    _penPoint.setBrush(QColorConstants::Black);
-    _penPoint.setWidth(40);
+    _penPoint.setBrush(QColorConstants::White);
+    _penPoint.setWidth(20);
+
+    _greenPen.setBrush(QColorConstants::Green);
+    _greenPen.setWidth(40);
+
+    _penMousePoint.setBrush(QColorConstants::White);
+    _penMousePoint.setWidth(2);
 
     _bluePen.setBrush(QColorConstants::Blue);
     _bluePen.setWidth(6);
@@ -73,7 +91,7 @@ MainWindow::MainWindow(QWidget *parent)
     redFill.setWidth(60);
 
     //////////////////////////////////////////////////////////
-    _scene->setSceneRect(0, 0, 12000, -12000);
+    _scene->setSceneRect(-4000, 0, 12000, -12000);
 
     _rocketItem.append(_scene->addRect(0, 0, 600, 250, redFill));
     _ForceItemMain.append(_scene->addLine(0,0,0,0, redFill));
@@ -82,6 +100,12 @@ MainWindow::MainWindow(QWidget *parent)
     _stepLine.append(_scene->addLine(0,0,0,0, _penPoint));
     _stepTitle.append(_scene->addText("", QFont("Arial",300)));
     _stepTitle.append(_scene->addText("", QFont("Arial",300)));
+
+    for (int i=0; i<MouseLine::LINE_NB; i++)
+    {
+        _mouseLine.append(_scene->addLine(0,0,0,0, _penMousePoint));
+        _mouseTitle.append(_scene->addText("", QFont("Arial",100)));
+    }
 
     _scene->addLine(0,0 , 10000,0, _penPoint);
     //_scene->addLine(0,10000 , 10000,10000, _penPoint);
@@ -108,6 +132,9 @@ MainWindow::MainWindow(QWidget *parent)
         _worldManager->setInitialParameters(_ui->configuration_Widget->getModel()->initialParam());
     });
 
+    connect(_graphicView, &GraphicViewSurcharged::MouseMooved, this, &MainWindow::refreshMouseDisplay);
+    connect(_graphicView, &GraphicViewSurcharged::WheelMooved, this, &MainWindow::refreshViewDisplay);
+
     _ui->configuration_Widget->syncModel();
     _worldManager->setInitialParameters(_ui->configuration_Widget->getModel()->initialParam());
 
@@ -131,20 +158,31 @@ void MainWindow::refresh()
 
     _ForceItemMain[0]->setLine(propuOrigin.x(), propuOrigin.y(), propuOrigin.x()+(qCos( qDegreesToRadians(model.propulsorAngle-model.angle+90) ) * model.propulsorThrust*5), propuOrigin.y()-(qSin( qDegreesToRadians(model.propulsorAngle-model.angle+90) ) * model.propulsorThrust*5));
 
+    if (model.openingShock <= 200 && model.elapsedTime > 2000)
+    {
+        _energyItem.append(_scene->addEllipse(model.rocketHistoric.last().x()-20, model.rocketHistoric.last().y()-20, 40, 40, _greenPen, _brushPoint));
+        _energyItem.last()->setZValue(10);
+
+        paraCpt += 10;
+
+        //qDebug() << paraCpt / 1000;
+    }
+
     if (model.rocketHistoric.size() > _rocketHistoricItem.size() && pointCpt > 7)
     {
         if (_worldManager->model().rocketVelocity >= 343)
         {
-            _rocketHistoricItem.append(_scene->addEllipse(model.rocketHistoric.last().x()-25, model.rocketHistoric.last().y()-25, 50, 50, _redPenHeavier, _brushPoint));
+            _rocketHistoricItem.append(_scene->addEllipse(model.rocketHistoric.last().x()-10, model.rocketHistoric.last().y()-10, 20, 20, _redPenHeavier, _brushPoint));
         }
         else if (_worldManager->model().rocketVelocity >= 257.25)
         {
-            _rocketHistoricItem.append(_scene->addEllipse(model.rocketHistoric.last().x()-25, model.rocketHistoric.last().y()-25, 50, 50, _bluePenHeavier, _brushPoint));
+            _rocketHistoricItem.append(_scene->addEllipse(model.rocketHistoric.last().x()-10, model.rocketHistoric.last().y()-10, 20, 20, _bluePenHeavier, _brushPoint));
         }
         else
         {
-            _rocketHistoricItem.append(_scene->addEllipse(model.rocketHistoric.last().x()-25, model.rocketHistoric.last().y()-25, 50, 50, _penPoint, _brushPoint));
+            _rocketHistoricItem.append(_scene->addEllipse(model.rocketHistoric.last().x()-10, model.rocketHistoric.last().y()-10, 20, 20, _penPoint, _brushPoint));
         }
+        _rocketHistoricItem.last()->setZValue(20);
 
 
         for (int i=0; i<100; i++)
@@ -195,10 +233,39 @@ void MainWindow::refresh()
     _ui->label_acceleration->setText(QString::number(model.rocketAccelerationSum));
     _ui->label_rotationSpeed->setText(QString::number(model.rotationSpeed * 100)); // 10ms / 1s
 
-    if (_ui->checkBox_autoFocus->isChecked()) _ui->graphicsView->centerOn(model.rocketX, model.rocketY);
+    if (_ui->checkBox_autoFocus->isChecked()) _graphicView->centerOn(model.rocketX, model.rocketY);
 
     _ui->plotZone->plot1()->appendData(Curve::SPEED, _worldManager->model().velocityHistoric.last());
     _ui->plotZone->plot2()->appendData(Curve::FRICTION, _worldManager->model().frictionHistoric.last());
+}
+
+void MainWindow::refreshMouseDisplay(QPoint p)
+{
+    QPointF scenePos = _graphicView->mapToScene(p);
+    _mouseLine[MouseLine::VERTICAL]->setLine(scenePos.x(), 0, scenePos.x(), -12000);
+    _mouseLine[MouseLine::HORIZONTAL]->setLine(0, scenePos.y(), 12000, scenePos.y());
+
+    _mouseTitle[VERTICAL]->setPos(scenePos.x() + 100, scenePos.y() - 600);
+    _mouseTitle[VERTICAL]->setPlainText(QString::number(int(scenePos.x())) + " m");
+
+    _mouseTitle[HORIZONTAL]->setPos(scenePos.x() + 600, scenePos.y() - 200);
+    _mouseTitle[HORIZONTAL]->setPlainText(QString::number(int(-scenePos.y())) + " m");
+}
+
+void MainWindow::refreshViewDisplay(QPoint p)
+{
+    QPointF scenePos = _graphicView->mapToScene(_graphicView->lastMouseCoord());
+
+    _graphicView->centerOn(scenePos.x(), scenePos.y());
+
+    if (p.y() > 0)
+    {
+        _graphicView->scale(1.01, 1.01);
+    }
+    else
+    {
+        _graphicView->scale(0.99, 0.99);
+    }
 }
 
 void MainWindow::on_pushButton_clicked()
@@ -208,8 +275,8 @@ void MainWindow::on_pushButton_clicked()
 
 void MainWindow::fitIn()
 {
-    _ui->graphicsView->centerOn(0, 0);
-    _ui->graphicsView->scale(0.08, 0.08);
+    _graphicView->centerOn(0, 0);
+    _graphicView->scale(0.08, 0.08);
 }
 
 void MainWindow::on_pushButton_pause_clicked()
@@ -293,14 +360,14 @@ void MainWindow::on_pushButton_resetSimu_clicked()
 
 void MainWindow::on_pushButton_zoom_clicked()
 {
-    _ui->graphicsView->scale(1.1, 1.1);
-    _ui->graphicsView->centerOn(0, 0);
+    _graphicView->scale(1.1, 1.1);
+    _graphicView->centerOn(0, 0);
 }
 
 
 void MainWindow::on_pushButton_dezoom_clicked()
 {
-    _ui->graphicsView->scale(0.9, 0.9);
-    _ui->graphicsView->centerOn(0, 0);
+    _graphicView->scale(0.9, 0.9);
+    _graphicView->centerOn(0, 0);
 }
 

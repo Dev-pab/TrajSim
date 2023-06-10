@@ -44,6 +44,9 @@ struct PositionModel
    double rocketAccelerationSum;
    double rocketAccelerationSumAngle;
 
+   double energy;
+   double openingShock;
+
    int elapsedTime;
 };
 

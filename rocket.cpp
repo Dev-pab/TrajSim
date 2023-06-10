@@ -39,7 +39,7 @@ void Rocket::setForce(ForceType id, double strengh, double angle)
         _forces[id].angle = angle;
         _forces[id].strengh = strengh;
     }
-    qDebug() << _forces[id].angle << _forces[id].strengh;
+    //qDebug() << _forces[id].angle << _forces[id].strengh;
 }
 
 Force Rocket::force(ForceType id)
@@ -128,7 +128,7 @@ void Rocket::simulateNexStep(int ms)
             {
                 _forces[ForceType::thrust].strengh = 0;
             }
-            qDebug() << _mass << max_altitude << max_speed << _x << timeSupersonic << timeTransonic;
+            //qDebug() << _mass << max_altitude << max_speed << _x << timeSupersonic << timeTransonic;
             //qDebug() << _forces[thrust].strengh;
 
             xSum += (qCos( qDegreesToRadians(_forces[i].angle) ) * (_forces[i].strengh * (ms / 1000.00)) );

@@ -63,7 +63,9 @@ private:
     GraphicViewSurcharged * _graphicView;
 
     QPen _penPoint;
+    QPen _penMousePoint;
     QPen _bluePen;
+    QPen _greenPen;
     QPen _redPen;
     QPen _redPenHeavier;
     QPen _bluePenHeavier;
@@ -71,13 +73,19 @@ private:
 
     QVector<QGraphicsRectItem*> _rocketItem;
     QVector<QGraphicsEllipseItem*> _rocketHistoricItem;
+    QVector<QGraphicsEllipseItem*> _energyItem;
     QVector<QGraphicsLineItem*> _ForceItemMain;
     QVector<QGraphicsLineItem*> _stepLine;
     QVector<QGraphicsTextItem*> _stepTitle;
 
+    QVector<QGraphicsLineItem*> _mouseLine;
+    QVector<QGraphicsTextItem*> _mouseTitle;
+
     QVector<QGraphicsLineItem*> _ForceItem;
 
     void refresh();
+    void refreshMouseDisplay(QPoint p);
+    void refreshViewDisplay(QPoint p);
 
     WorldManager * _worldManager;
 

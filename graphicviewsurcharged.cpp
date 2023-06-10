@@ -1,7 +1,8 @@
 
 #include "graphicviewsurcharged.h"
 
-GraphicViewSurcharged::GraphicViewSurcharged()
+GraphicViewSurcharged::GraphicViewSurcharged(QWidget* parent) :
+    QGraphicsView(parent)
 {
 
 }
